@@ -1,9 +1,13 @@
 import socket
 import os
 import shutil
+import threading
 
 # Copy the absolute path
 sourcePath = "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
+
+connectStatus = False
+clientAddress = None
 
 def getAllFiles():
     localRepo = sourcePath + "Client1/LocalRepo"
@@ -22,9 +26,10 @@ def searchFile(fileName):
         return False
 
 def returnBroadcast(fileName, clientSocket):
+    global clientAddress
     message = "respondBroadcast "
     if searchFile(fileName):
-        message += "<MY_IP>"
+        message += clientAddress
     else:
         message += "empty"
     clientSocket.send(message.encode())
@@ -70,7 +75,7 @@ def respondDiscover(clientSocket):
     clientSocket.send(message.encode())
 
 def respondPing(clientSocket):
-    message = "respondPing" + "<MY_IP>"
+    message = "respondPing " + clientAddress
     clientSocket.send(message.encode())
 
 def sendMessage(messageSegments, clientSocket):
@@ -81,21 +86,47 @@ def sendMessage(messageSegments, clientSocket):
     message = message[:-1]
     clientSocket.send(message.encode())
 
-def clientProgram():
-    host = socket.gethostname()
-    port = 5000
-
-    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    clientSocket.connect((host, port))
-
-    while True:
-        message = input("-> ")
-        message = message.strip().split()
-        if message[0].lower() == "exit":
+def clientReceive(clientSocket):
+    global connectStatus, clientAddress
+    while connectStatus:
+        """
+        message = clientSocket.recv(1024).decode()
+        if not message:
             break
-        elif message[0].lower() == "publish" and message[1] and message[2]:
+        print("From server: " + message)
+        """
+        try:
+            message = clientSocket.recv(1024).decode()
+            if not message:
+                break
+            # use for debugging purpose
+            # print("From server: " + message)
+            message = message.split()
+            if message[0] == "clientAddress":
+                clientAddress = message[1]
+            elif message[0] == "requestBroadcast":
+                returnBroadcast(message[1], clientSocket)
+            elif message[0] == "respondIP":
+                connectFetchClient()
+            elif message[0] == "requestDiscover":
+                respondDiscover(clientSocket)
+            elif message[0] == "requestPing":
+                respondPing(clientSocket)
+        except ConnectionAbortedError:
+            break
+    clientSocket.close()
+
+def clientSend(clientSocket):
+    global connectStatus, clientAddress
+    while True:
+        message = input()
+        message = message.strip().split()
+        if message[0] == "exit":
+            connectStatus = False
+            break
+        elif message[0] == "publish" and message[1] and message[2]:
             publish(message[1], message[2], clientSocket)
-        elif message[0].lower() == "fetch" and message[1]:
+        elif message[0] == "fetch" and message[1]:
             # 1/ Contact server
             ip = fetchIP(message[1], clientSocket)
             if not IP:
@@ -104,22 +135,39 @@ def clientProgram():
             # 2/ Contact client
             # 2.1/ Send request fetch to client (using port?)
                 connectFetchClient(ip)
-            # 2.2/ Client search for file in repo --> definitely use thread here
+            # 2.2/ Client search for file in repo
             # 2.3/ Send file back to requesting client
-        elif message[0].lower() == "message":
+        elif message[0] == "message":
             sendMessage(message, clientSocket)
-        elif message[0].lower() == "files":
+        elif message[0] == "files":
             fileList = getAllFiles()
             for file in fileList:
                 print(file + " ")
-        elif message[0].lower() == "search" and message[1]:
+        elif message[0] == "search" and message[1]:
             if searchFile(message[1]):
                 print("There is file")
             else:
                 print("There is no file")
+        elif message[0] == "clientAddress":
+            print(clientAddress)
         else:
             print("Invalid command")
     clientSocket.close()
+
+def clientProgram():
+    global connectStatus
+    host = socket.gethostname()
+    port = 12000
+
+    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    clientSocket.connect((host, port))
+    connectStatus = True
+
+    threadSend = threading.Thread(target=clientSend, args=(clientSocket,))
+    threadSend.start()
+
+    threadReceive = threading.Thread(target=clientReceive, args=(clientSocket,))
+    threadReceive.start()
 
 if __name__ == '__main__':
     clientProgram()
