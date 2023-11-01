@@ -32,6 +32,48 @@ def serverSend():
                 print("Command missing arguments!")
     connectSocket.close()
 
+def fetchBroadcast(message, connectingClients):
+    # Split the message into segments
+    segments = message.split(" ")
+
+    if len(segments) == 2:
+        filename = segments[1]
+        # Construct the requestBroadcast message
+        broadcast_message = f"requestBroadcast {filename}"
+
+        # Send the request to all connected clients
+        for connectSocket in connectingClients:
+            connectSocket.send(broadcast_message.encode())
+    else:
+        print("Invalid command. Usage: fetchBroadcast <filename>")
+
+def returnIP(message, connectingClients):
+    # Split the message into segments
+    segments = message.split(" ")
+
+    if len(segments) == 2:
+        filename = segments[1]
+        matching_clients = []
+
+        # Find clients that have the file
+        for connectSocket in connectingClients:
+            connectSocket.send(f"requestIP {filename}".encode())
+            response = connectSocket.recv(1024).decode()
+            if response.startswith("respondIP"):
+                ips = response.split(" ")[1:]
+                matching_clients.extend(ips)
+
+        if matching_clients:
+            # Construct the respondIP message with IP addresses
+            response_message = "respondIP " + " ".join(matching_clients)
+        else:
+            response_message = "respondIP noFile"
+
+        # Send the response to the original client
+        connectingClients[0].send(response_message.encode())
+    else:
+        print("Invalid command. Usage: returnIP <filename>")
+
 def serverReceive(connectSocket, address):
     while True:
         try:
