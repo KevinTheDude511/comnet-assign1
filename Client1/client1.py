@@ -7,7 +7,11 @@ import threading
 sourcePath = "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
 
 connectStatus = False
+fetchStatus = False
 clientAddress = None
+filename = ""
+
+listen_port = 10000
 
 def getAllFiles():
     localRepo = sourcePath + "Client1/LocalRepo"
@@ -17,6 +21,13 @@ def getAllFiles():
         if os.path.isfile(filePath):
             fileList.append(file)
     return fileList
+   
+def getFile():
+    fileList = getAllFiles()
+    if fileName in fileList:
+        return "LocalRepo/" + fileName
+    else:
+        return "Fail"
 
 def searchFile(fileName):
     fileList = getAllFiles()
@@ -35,12 +46,64 @@ def returnBroadcast(fileName, clientSocket):
     clientSocket.send(message.encode())
 
 def connectFetchClient(ip):
+    global filename, fetchStatus
     # connect client by ip?
-    return True
+    inp = "0"
+    if (len(ip) > 1):
+        while True:
+            print("Choose a client to get file from(Input a number from 0 to " + str(len(ip) - 1) + "):")
+            for i, val in enumerate(ip):
+                print(str(i) + ": " + str(val))
+            inp = input()
+            if (not(inp.isnumeric())):
+                print("Invalid input, input number from 0 to " + str(len(ip) - 1) + " only!")
+            elif (int(inp) < 0 or int(inp) > (len(ip) - 1)):
+                print("Invalid input, input number from 0 to " + str(len(ip) - 1) + " only!")
+            else:
+                break
+       
+    fetchsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    fetchsocket.connect((ip[int(inp)], listen_port))
+    fetchsocket.send(("requestFile " + filename).encode())
+    newfile = open("LocalRepo/" + filename, "wb")
+    try:
+        print("Receiving file, please wait")
+        r = fetchsocket.recv(1024)
+        while (r):
+            newfile.write(r)
+            r = fetchsocket.recv(1024)
+        newfile.close()
+        print("Receive file!")
+        fetchsocket.close()
+        fetchStatus = False
+        return True
+    except ConnectionAbortedError:
+        print("Fail to receive file due to abrupt disconnection from other client.")
+        os.remove("LocalRepo/" + filename)
+        fetchsocket.close()
+        fetchStatus = False
+        return False
+    
 
-def returnFetchClient():
+def returnFetchClient(reqclient):
     # send file over socket?
-    return True
+    message = reqclient.recv(1024).decode()
+    command = message.split()
+    # real code
+    f = open("LocalRepo/" + command[1], "rb")
+    # testing code
+    #f = open(command[1], "rb")
+    try:
+        print("Sending file, please wait")
+        reqclient.sendall(f.read())  
+        f.close()
+        print("File send!")
+        reqclient.close()
+        return True
+    except ConnectionAbortedError:
+        print("Fail to send file due to abrupt disconnection from other client.")
+        reqclient.close()
+        return False
 
 def publish(fileLocation, newFileName, clientSocket):
     oldPath = sourcePath + fileLocation
@@ -54,18 +117,14 @@ def publish(fileLocation, newFileName, clientSocket):
 
 def fetchIP(fileName, clientSocket):
     # 1.1/ Send request fetch to server
-    message = "requestIP " + fileName
-    clientSocket.send(message.encode())
+    global fetchStatus
+    fetchStatus = True
+    clientSocket.send(("requestIP " + fileName).encode())
     # 1.4/ Server sends IP back to client
-    message = clientSocket.recv(1024).decode()
-    message = message.split()
-    if message[0] == respondIP and message[1] == "noFile":
-        return None
-    elif message[0] == respondIP:
-        return message[1]
-    else:
-        raise ValueError("fetchIP: wrong message received")
-
+    # message = clientSocket.recv(1024).decode()
+    # message = message.split()
+    # print(message)
+    
 def respondDiscover(clientSocket):
     message = "respondDiscover "
     fileList = getAllFiles()
@@ -97,8 +156,6 @@ def clientReceive(clientSocket):
         """
         try:
             message = clientSocket.recv(1024).decode()
-            if not message:
-                break
             # use for debugging purpose
             # print("From server: " + message)
             message = message.split()
@@ -107,7 +164,10 @@ def clientReceive(clientSocket):
             elif message[0] == "requestBroadcast":
                 returnBroadcast(message[1], clientSocket)
             elif message[0] == "respondIP":
-                connectFetchClient()
+                if message[1] == "noFile":
+                    print("No online client have " + filename)
+                else:
+                    connectFetchClient(message[1:])
             elif message[0] == "requestDiscover":
                 respondDiscover(clientSocket)
             elif message[0] == "requestPing":
@@ -117,43 +177,63 @@ def clientReceive(clientSocket):
     clientSocket.close()
 
 def clientSend(clientSocket):
-    global connectStatus, clientAddress
+    global connectStatus, clientAddress, filename, fetchStatus
     while True:
         message = input()
         message = message.strip().split()
-        if message[0] == "exit":
-            connectStatus = False
-            break
-        elif message[0] == "publish" and message[1] and message[2]:
-            publish(message[1], message[2], clientSocket)
-        elif message[0] == "fetch" and message[1]:
-            # 1/ Contact server
-            ip = fetchIP(message[1], clientSocket)
-            if not IP:
-                print("No online client have " + message[1])
-                continue
-            # 2/ Contact client
-            # 2.1/ Send request fetch to client (using port?)
-                connectFetchClient(ip)
-            # 2.2/ Client search for file in repo
-            # 2.3/ Send file back to requesting client
-        elif message[0] == "message":
-            sendMessage(message, clientSocket)
-        elif message[0] == "files":
-            fileList = getAllFiles()
-            for file in fileList:
-                print(file + " ")
-        elif message[0] == "search" and message[1]:
-            if searchFile(message[1]):
-                print("There is file")
+        if (len(message) > 0):
+            if message[0] == "exit" and len(message) == 1:
+                connectStatus = False
+                break
+            elif message[0] == "publish" and len(message) == 3:
+                publish(message[1], message[2], clientSocket)
+            elif message[0] == "fetch" and len(message) == 2:
+                # 1/ Contact server
+                # ip = fetchIP(message[1], clientSocket)
+                filename = message[1]
+                fetchIP(message[1], clientSocket)
+                while (fetchStatus):
+                    continue
+                # if not IP:
+                    # print("No online client have " + message[1])
+                    # continue
+                # 2/ Contact client
+                # 2.1/ Send request fetch to client (using port?)
+                # print("F")
+                # connectFetchClient(ip, clientSocket, message[1])
+                # 2.2/ Client search for file in repo
+                # 2.3/ Send file back to requesting client
+            elif message[0] == "message":
+                sendMessage(message, clientSocket)
+            elif message[0] == "files":
+                fileList = getAllFiles()
+                for file in fileList:
+                    print(file + " ")
+            elif message[0] == "search" and message[1]:
+                if searchFile(message[1]):
+                    print("There is file")
+                else:
+                    print("There is no file")
+            elif message[0] == "clientAddress":
+                print(clientAddress)
             else:
-                print("There is no file")
-        elif message[0] == "clientAddress":
-            print(clientAddress)
+                print("Invalid command")
         else:
             print("Invalid command")
     clientSocket.close()
+    endSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    endSocket.connect((socket.gethostname(), listen_port))
+    endSocket.close()
 
+def clientListen(listenSocket):
+    while connectStatus:
+        listenSocket.listen(5)
+        reqclient, reqclient_addr = listenSocket.accept()
+        if (not(connectStatus)):
+            break
+        returnthread = threading.Thread(target = returnFetchClient, args = (reqclient,))
+        returnthread.start()
+        
 def clientProgram():
     global connectStatus
     host = socket.gethostname()
@@ -168,6 +248,11 @@ def clientProgram():
 
     threadReceive = threading.Thread(target=clientReceive, args=(clientSocket,))
     threadReceive.start()
+    
+    listenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listenSocket.bind((host, listen_port))
+    threadListen = threading.Thread(target = clientListen, args=(listenSocket,))
+    threadListen.start()
 
 if __name__ == '__main__':
     clientProgram()
