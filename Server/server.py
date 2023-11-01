@@ -8,29 +8,11 @@ connectingClients = []
 def serverSend():
     while True:
         message = input()
-        message = message.strip().split(" ")
         if not connectingClients:
             print("There is no connecting client")
             continue
         for connectSocket in connectingClients:
-            ip, _ = connectSocket.getpeername()
-            if len(message) > 1:
-                if message[0] == "ping":
-                    if message[1] != ip:
-                        print(f"{message[1]} is down!")
-                        continue
-                    else:
-                        message = "requestPing"
-                elif message[0] == "discover":
-                    if message[1] != ip:
-                        print("Error!")
-                        continue
-                    else:
-                        message = "requestDiscover"
-                connectSocket.send(message.encode())
-            else:
-                print("Command missing arguments!")
-    connectSocket.close()
+            connectSocket.send(message.encode())
 
 def serverReceive(connectSocket, address):
     while True:
@@ -40,13 +22,11 @@ def serverReceive(connectSocket, address):
                 break
             command = message.strip().split(" ")
             print(f"{address}: {message}")
+            #Prototype for finding correct file from clients connect to server
+            #and return all IP of clients which have the file .
             if (command[0] == "requestIP"):
                 connectSocket.send(("respondIP " + socket.gethostbyname(socket.gethostname())).encode())
-            elif command[0] == "respondPing":
-                print(f"{command[1]} is up.")
-            elif command[0] == "respondDiscover":
-                for i in command[1:]:
-                    print(i[:-1])
+            #   connectSocket.send(("respondIP " + socket.gethostbyname(socket.gethostname()) + " " + socket.gethostbyname(socket.gethostname()) + " " + socket.gethostbyname(socket.gethostname())).encode())
         except ConnectionResetError:
             break
     connectSocket.close()
@@ -79,4 +59,4 @@ def serverProgram():
     threadListen.start()
 
 if __name__ == '__main__':
-    serverProgram()    serverProgram()
+    serverProgram()
