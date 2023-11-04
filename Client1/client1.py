@@ -2,12 +2,13 @@ import socket
 import os
 import shutil
 import threading
+import random
 
 # Copy the absolute path
-sourcePath = "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
+# Original Path: "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
+sourcePath = "D:/comassign/"
 
 connectStatus = False
-fetchStatus = False
 clientAddress = None
 filename = ""
 
@@ -45,25 +46,14 @@ def returnBroadcast(fileName, clientSocket):
         message += "empty"
     clientSocket.send(message.encode())
 
-def connectFetchClient(ip):
-    global filename, fetchStatus
+def connectFetchClient(addr):
+    global filename
     # connect client by ip?
-    inp = "0"
-    if (len(ip) > 1):
-        while True:
-            print("Choose a client to get file from(Input a number from 0 to " + str(len(ip) - 1) + "):")
-            for i, val in enumerate(ip):
-                print(str(i) + ": " + str(val))
-            inp = input()
-            if (not(inp.isnumeric())):
-                print("Invalid input, input number from 0 to " + str(len(ip) - 1) + " only!")
-            elif (int(inp) < 0 or int(inp) > (len(ip) - 1)):
-                print("Invalid input, input number from 0 to " + str(len(ip) - 1) + " only!")
-            else:
-                break
-       
+    inp = random.randint(0, len(addr) - 1)
+    address = addr[inp].split(":")
+    
     fetchsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    fetchsocket.connect((ip[int(inp)], listen_port))
+    fetchsocket.connect((address[0], int(address[1])))
     fetchsocket.send(("requestFile " + filename).encode())
     newfile = open("LocalRepo/" + filename, "wb")
     try:
@@ -75,22 +65,20 @@ def connectFetchClient(ip):
         newfile.close()
         print("Receive file!")
         fetchsocket.close()
-        fetchStatus = False
         return True
     except ConnectionAbortedError:
         print("Fail to receive file due to abrupt disconnection from other client.")
         os.remove("LocalRepo/" + filename)
         fetchsocket.close()
-        fetchStatus = False
         return False
     
-
 def returnFetchClient(reqclient):
     # send file over socket?
-    message = reqclient.recv(1024).decode()
-    command = message.split()
     # real code
-    f = open("LocalRepo/" + command[1], "rb")
+    message = reqclient.recv(1024).decode()
+    message = message.split(" ")
+    print(message)
+    f = open("LocalRepo/" + message[1], "rb")
     # testing code
     #f = open(command[1], "rb")
     try:
@@ -117,8 +105,6 @@ def publish(fileLocation, newFileName, clientSocket):
 
 def fetchIP(fileName, clientSocket):
     # 1.1/ Send request fetch to server
-    global fetchStatus
-    fetchStatus = True
     clientSocket.send(("requestIP " + fileName).encode())
     # 1.4/ Server sends IP back to client
     # message = clientSocket.recv(1024).decode()
@@ -167,19 +153,26 @@ def clientReceive(clientSocket):
                 if message[1] == "noFile":
                     print("No online client have " + filename)
                 else:
-                    connectFetchClient(message[1:])
+                    connectFetch_thread = threading.Thread(target=connectFetchClient, args=(message[1:],))
+                    connectFetch_thread.start()
             elif message[0] == "requestDiscover":
                 respondDiscover(clientSocket)
             elif message[0] == "requestPing":
                 respondPing(clientSocket)
         except ConnectionAbortedError:
+            connectStatus = False
+            break
+        except ConnectionResetError:
+            connectStatus = False
             break
     clientSocket.close()
 
 def clientSend(clientSocket):
-    global connectStatus, clientAddress, filename, fetchStatus
-    while True:
+    global connectStatus, clientAddress, filename
+    while connectStatus:
         message = input()
+        if (not(connectStatus)):
+            break
         message = message.strip().split()
         if (len(message) > 0):
             if message[0] == "exit" and len(message) == 1:
@@ -192,8 +185,6 @@ def clientSend(clientSocket):
                 # ip = fetchIP(message[1], clientSocket)
                 filename = message[1]
                 fetchIP(message[1], clientSocket)
-                while (fetchStatus):
-                    continue
                 # if not IP:
                     # print("No online client have " + message[1])
                     # continue
@@ -220,10 +211,10 @@ def clientSend(clientSocket):
                 print("Invalid command")
         else:
             print("Invalid command")
-    clientSocket.close()
     endSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    endSocket.connect((socket.gethostname(), listen_port))
+    endSocket.connect(clientSocket.getsockname())
     endSocket.close()
+    clientSocket.close()
 
 def clientListen(listenSocket):
     while connectStatus:
@@ -238,7 +229,8 @@ def clientProgram():
     global connectStatus
     host = socket.gethostname()
     port = 12000
-
+    random.seed()
+       
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientSocket.connect((host, port))
     connectStatus = True
@@ -250,7 +242,7 @@ def clientProgram():
     threadReceive.start()
     
     listenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    listenSocket.bind((host, listen_port))
+    listenSocket.bind(clientSocket.getsockname())
     threadListen = threading.Thread(target = clientListen, args=(listenSocket,))
     threadListen.start()
 
