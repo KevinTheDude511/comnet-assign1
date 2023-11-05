@@ -54,14 +54,11 @@ def fetchBroadcast(message, conClients):
             if (connectingClients[i] != conClients ):
                 broadcastPeer, peerAddr = broadcastSocket.accept()
                 response = broadcastPeer.recv(1024).decode()
-                print(response)
                 command = response.split(" ")
-                print(command)
                 if (command[0] == "respondBroadcast" and command[1] != "empty"):
                     matching_clients.append(command[1])
         broadcastSocket.close()
         
-        print(matching_clients)
         response_message = ""
         if matching_clients:
             # Construct the respondIP message with IP addresses
@@ -86,8 +83,7 @@ def serverReceive(connectSocket, address):
             #Prototype for finding correct file from clients connect to server
             #and return all IP of clients which have the file .
             if (command[0] == "requestIP"):
-                connectSocket.send(("respondIP " + socket.gethostbyname(socket.gethostname())).encode())
-            #   connectSocket.send(("respondIP " + socket.gethostbyname(socket.gethostname()) + " " + socket.gethostbyname(socket.gethostname()) + " " + socket.gethostbyname(socket.gethostname())).encode())
+                fetchBroadcast(message, connectSocket)
             elif command[0] == "respondPing":
                 print(f"{command[1]} is up.")
             elif command[0] == "respondDiscover":
@@ -95,8 +91,8 @@ def serverReceive(connectSocket, address):
                     print(i[:-1])
         except ConnectionResetError:
             break
-    connectSocket.close()
     connectingClients.remove(connectSocket)
+    connectSocket.close()
 
 def serverConnect(serverSocket):
     while True:
