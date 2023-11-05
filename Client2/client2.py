@@ -12,7 +12,7 @@ connectStatus = False
 clientAddress = None
 filename = ""
 
-listen_port = 10000
+broadcast_port = 10000
 
 def getAllFiles():
     localRepo = sourcePath + "Client1/LocalRepo"
@@ -44,7 +44,13 @@ def returnBroadcast(fileName, clientSocket):
         message += clientAddress
     else:
         message += "empty"
-    clientSocket.send(message.encode())
+    try:
+        returnbroadSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        returnbroadSocket.connect((clientSocket.getpeername()[0],10000))
+        returnbroadSocket.send(message.encode())
+    except ConnectionAbortedError:
+        pass
+    returnbroadSocket.close()
 
 def connectFetchClient(addr):
     global filename
@@ -77,7 +83,6 @@ def returnFetchClient(reqclient):
     # real code
     message = reqclient.recv(1024).decode()
     message = message.split(" ")
-    print(message)
     f = open("LocalRepo/" + message[1], "rb")
     # testing code
     #f = open(command[1], "rb")
