@@ -32,47 +32,48 @@ def serverSend():
                 print("Command missing arguments!")
     connectSocket.close()
 
-def fetchBroadcast(message, connectingClients):
+def fetchBroadcast(message, conClients):
     # Split the message into segments
-    segments = message.split(" ")
-
-    if len(segments) == 2:
-        filename = segments[1]
-        # Construct the requestBroadcast message
-        broadcast_message = f"requestBroadcast {filename}"
-
-        # Send the request to all connected clients
-        for connectSocket in connectingClients:
-            connectSocket.send(broadcast_message.encode())
-    else:
-        print("Invalid command. Usage: fetchBroadcast <filename>")
-
-def returnIP(message, connectingClients):
-    # Split the message into segments
+    global connectingClients
     segments = message.split(" ")
 
     if len(segments) == 2:
         filename = segments[1]
         matching_clients = []
+        # Construct the requestBroadcast message
+        broadcast_message = f"requestBroadcast {filename}"
 
-        # Find clients that have the file
+        # Send the request to all connected clients
         for connectSocket in connectingClients:
-            connectSocket.send(f"requestIP {filename}".encode())
-            response = connectSocket.recv(1024).decode()
-            if response.startswith("respondIP"):
-                ips = response.split(" ")[1:]
-                matching_clients.extend(ips)
-
+            if (connectSocket != conClients ):
+                connectSocket.send(broadcast_message.encode())
+        broadcastSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        broadcastSocket.bind((socket.gethostname(), 10000))
+        broadcastSocket.listen(len(connectingClients) - 1)
+        for i in range(len(connectingClients)):
+            if (connectingClients[i] != conClients ):
+                broadcastPeer, peerAddr = broadcastSocket.accept()
+                response = broadcastPeer.recv(1024).decode()
+                print(response)
+                command = response.split(" ")
+                print(command)
+                if (command[0] == "respondBroadcast" and command[1] != "empty"):
+                    matching_clients.append(command[1])
+        broadcastSocket.close()
+        
+        print(matching_clients)
+        response_message = ""
         if matching_clients:
             # Construct the respondIP message with IP addresses
             response_message = "respondIP " + " ".join(matching_clients)
         else:
             response_message = "respondIP noFile"
-
-        # Send the response to the original client
-        connectingClients[0].send(response_message.encode())
+        conClients.send(response_message.encode())
     else:
-        print("Invalid command. Usage: returnIP <filename>")
+        print("Invalid command. Usage: fetchBroadcast <filename>")
+
+def returnIP(message, connectingClients):
+    pass
 
 def serverReceive(connectSocket, address):
     while True:
