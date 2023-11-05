@@ -5,7 +5,7 @@ import threading
 import random
 
 # Copy the absolute path
-sourcePath = "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
+sourcePath = "D:/comassign/"
 
 connectStatus = False
 clientAddress = None
@@ -14,7 +14,7 @@ filename = ""
 broadcast_port = 10000
 
 def getAllFiles():
-    localRepo = sourcePath + "Client1/LocalRepo"
+    localRepo = "./LocalRepo"
     fileList = []
     for file in os.listdir(localRepo):
         filePath = os.path.join(localRepo, file)
