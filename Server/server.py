@@ -80,8 +80,6 @@ def serverReceive(connectSocket, address):
                 break
             command = message.strip().split(" ")
             print(f"{address}: {message}")
-            #Prototype for finding correct file from clients connect to server
-            #and return all IP of clients which have the file .
             if (command[0] == "requestIP"):
                 fetchBroadcast(message, connectSocket)
             elif command[0] == "respondPing":
