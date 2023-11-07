@@ -118,7 +118,7 @@ def fetchIP(fileName, clientSocket):
     # print(message)
     
 def respondDiscover(clientSocket):
-    message = "respondDiscover "
+    message = "respondDiscover " + clientAddress + " "
     fileList = getAllFiles()
     for file in fileList:
         message += file + ","
