@@ -5,18 +5,16 @@ import threading
 import random
 
 # Copy the absolute path
-# Original Path: "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
-#sourcePath = "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
-sourcePath = "D:/comassign/"
+sourcePath = "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
 
 connectStatus = False
 clientAddress = None
 filename = ""
 
-listen_port = 10000
+broadcast_port = 10000
 
 def getAllFiles():
-    localRepo = sourcePath + "Client1/LocalRepo"
+    localRepo = "./LocalRepo"
     fileList = []
     for file in os.listdir(localRepo):
         filePath = os.path.join(localRepo, file)
@@ -45,7 +43,13 @@ def returnBroadcast(fileName, clientSocket):
         message += clientAddress
     else:
         message += "empty"
-    clientSocket.send(message.encode())
+    try:
+        returnbroadSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        returnbroadSocket.connect((clientSocket.getpeername()[0],10000))
+        returnbroadSocket.send(message.encode())
+    except ConnectionAbortedError:
+        pass
+    returnbroadSocket.close()
 
 def connectFetchClient(addr):
     global filename
@@ -78,7 +82,6 @@ def returnFetchClient(reqclient):
     # real code
     message = reqclient.recv(1024).decode()
     message = message.split(" ")
-    print(message)
     f = open("LocalRepo/" + message[1], "rb")
     # testing code
     #f = open(command[1], "rb")
@@ -96,7 +99,7 @@ def returnFetchClient(reqclient):
 
 def publish(fileLocation, newFileName, clientSocket):
     oldPath = sourcePath + fileLocation
-    newPath = sourcePath + "Client1/LocalRepo/" + newFileName + ".txt"
+    newPath = sourcePath + "Client2/LocalRepo/" + newFileName + ".txt"
     try:
         shutil.copy(oldPath, newPath)
     except FileNotFoundError:
