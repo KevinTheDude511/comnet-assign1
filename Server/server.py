@@ -79,7 +79,6 @@ def serverReceive(connectSocket, address):
             if not message:
                 break
             command = message.strip().split(" ")
-            print(f"{address}: {message}")
             if (command[0] == "requestIP"):
                 fetchBroadcast(message, connectSocket)
             elif command[0] == "respondPing":
