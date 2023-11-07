@@ -6,6 +6,7 @@ import random
 
 # Copy the absolute path
 sourcePath = "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
+clientName = "Client2/"
 
 connectStatus = False
 clientAddress = None
@@ -14,7 +15,8 @@ filename = ""
 broadcast_port = 10000
 
 def getAllFiles():
-    localRepo = "./LocalRepo"
+    # localRepo = "./LocalRepo"
+    localRepo = sourcePath + clientName + "LocalRepo"
     fileList = []
     for file in os.listdir(localRepo):
         filePath = os.path.join(localRepo, file)
@@ -60,7 +62,7 @@ def connectFetchClient(addr):
     fetchsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     fetchsocket.connect((address[0], int(address[1])))
     fetchsocket.send(("requestFile " + filename).encode())
-    newfile = open("LocalRepo/" + filename, "wb")
+    newfile = open(sourcePath + clientName + "LocalRepo/" + filename, "wb")
     try:
         print("Receiving file, please wait")
         r = fetchsocket.recv(1024)
@@ -73,7 +75,7 @@ def connectFetchClient(addr):
         return True
     except ConnectionAbortedError:
         print("Fail to receive file due to abrupt disconnection from other client.")
-        os.remove("LocalRepo/" + filename)
+        os.remove(sourcePath + clientName + "LocalRepo/" + filename)
         fetchsocket.close()
         return False
     
@@ -82,7 +84,7 @@ def returnFetchClient(reqclient):
     # real code
     message = reqclient.recv(1024).decode()
     message = message.split(" ")
-    f = open("LocalRepo/" + message[1], "rb")
+    f = open(sourcePath + clientName + "LocalRepo/" + message[1], "rb")
     # testing code
     #f = open(command[1], "rb")
     try:
@@ -99,7 +101,7 @@ def returnFetchClient(reqclient):
 
 def publish(fileLocation, newFileName, clientSocket):
     oldPath = sourcePath + fileLocation
-    newPath = sourcePath + "Client2/LocalRepo/" + newFileName + ".txt"
+    newPath = sourcePath + clientName + "LocalRepo/" + newFileName + ".txt"
     try:
         shutil.copy(oldPath, newPath)
     except FileNotFoundError:
