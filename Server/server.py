@@ -84,8 +84,7 @@ def serverReceive(connectSocket, address):
             elif command[0] == "respondPing":
                 print(f"{command[1]} is up.")
             elif command[0] == "respondDiscover":
-                for i in command[1:]:
-                    print(i[:-1])
+                print(f"{command[1]} local files: {command[2]}")
         except ConnectionResetError:
             break
     connectingClients.remove(connectSocket)
