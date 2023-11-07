@@ -6,6 +6,7 @@ import random
 
 # Copy the absolute path
 # Original Path: "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
+#sourcePath = "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
 sourcePath = "D:/comassign/"
 
 connectStatus = False
