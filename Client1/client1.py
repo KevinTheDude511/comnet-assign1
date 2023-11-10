@@ -234,11 +234,12 @@ def clientListen(listenSocket):
 def clientProgram():
     global connectStatus
     host = socket.gethostname()
+    serverIP = "192.168.56.1"    # change IP when test
     port = 12000
     random.seed()
        
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    clientSocket.connect((host, port))
+    clientSocket.connect((serverIP, port))
     connectStatus = True
 
     threadSend = threading.Thread(target=clientSend, args=(clientSocket,))
