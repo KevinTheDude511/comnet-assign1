@@ -6,7 +6,7 @@ import random
 
 # Copy the absolute path
 sourcePath = "C:/Users/Dell/Desktop/Files/BK năm ba/Computer Network (Lab)/Assignment_1/Code/"
-clientName = "Client2/"
+clientName = "Client4/"
 
 connectStatus = False
 clientAddress = None

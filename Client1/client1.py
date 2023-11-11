@@ -106,7 +106,7 @@ def publish(fileLocation, newFileName, clientSocket):
         shutil.copy(oldPath, newPath)
     except FileNotFoundError:
         print("File not found.")
-    message = "publish " + newFileName + ".txt"
+    message = "publish " + clientAddress + " " + newFileName + ".txt"
     clientSocket.send(message.encode())
 
 def fetchIP(fileName, clientSocket):
@@ -120,9 +120,12 @@ def fetchIP(fileName, clientSocket):
 def respondDiscover(clientSocket):
     message = "respondDiscover " + clientAddress + " "
     fileList = getAllFiles()
-    for file in fileList:
-        message += file + ","
-    message = message[:-1] # remove the final comma
+    if len(fileList) == 0:
+        message += "noFile"
+    else:
+        for file in fileList:
+            message += file + ","
+        message = message[:-1] # remove the final comma
     clientSocket.send(message.encode())
 
 def respondPing(clientSocket):
@@ -234,7 +237,7 @@ def clientListen(listenSocket):
 def clientProgram():
     global connectStatus
     host = socket.gethostname()
-    serverIP = "192.168.56.1"    # change IP when test
+    serverIP = "192.168.1.195"    # change IP when test
     port = 12000
     random.seed()
        

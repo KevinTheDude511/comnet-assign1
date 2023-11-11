@@ -84,7 +84,12 @@ def serverReceive(connectSocket, address):
             elif command[0] == "respondPing":
                 print(f"{command[1]} is up.")
             elif command[0] == "respondDiscover":
-                print(f"{command[1]} local files: {command[2]}")
+                if command[2] == "noFile":
+                    print(f"{command[1]} local files: no file")
+                else:
+                    print(f"{command[1]} local files: {command[2]}")
+            elif command[0] == "publish":
+                print(f"{command[1]} publishes: {command[2]}")
         except ConnectionResetError:
             break
     connectingClients.remove(connectSocket)
