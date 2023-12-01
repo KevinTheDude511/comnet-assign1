@@ -62,6 +62,7 @@ def connectFetchClient(addr):
     fetchsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     fetchsocket.connect((address[0], int(address[1])))
     fetchsocket.send(("requestFile " + filename).encode())
+    print(filename)
     newfile = open(sourcePath + clientName + "LocalRepo/" + filename, "wb")
     try:
         print("Receiving file, please wait")
@@ -75,7 +76,7 @@ def connectFetchClient(addr):
         return True
     except ConnectionAbortedError:
         print("Fail to receive file due to abrupt disconnection from other client.")
-        os.remove(sourcePath + clientName + "LocalRepo/" + filename)
+        #os.remove(sourcePath + clientName + "LocalRepo/" + filename)
         fetchsocket.close()
         return False
     
@@ -101,12 +102,12 @@ def returnFetchClient(reqclient):
 
 def publish(fileLocation, newFileName, clientSocket):
     oldPath = sourcePath + fileLocation
-    newPath = sourcePath + clientName + "LocalRepo/" + newFileName + ".txt"
+    newPath = sourcePath + clientName + "LocalRepo/" + newFileName
     try:
         shutil.copy(oldPath, newPath)
     except FileNotFoundError:
         print("File not found.")
-    message = "publish " + clientAddress + " " + newFileName + ".txt"
+    message = "publish " + clientAddress + " " + newFileName
     clientSocket.send(message.encode())
 
 def fetchIP(fileName, clientSocket):

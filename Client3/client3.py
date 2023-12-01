@@ -101,12 +101,12 @@ def returnFetchClient(reqclient):
 
 def publish(fileLocation, newFileName, clientSocket):
     oldPath = sourcePath + fileLocation
-    newPath = sourcePath + clientName + "LocalRepo/" + newFileName + ".txt"
+    newPath = sourcePath + clientName + "LocalRepo/" + newFileName
     try:
         shutil.copy(oldPath, newPath)
     except FileNotFoundError:
         print("File not found.")
-    message = "publish " + clientAddress + " " + newFileName + ".txt"
+    message = "publish " + clientAddress + " " + newFileName
     clientSocket.send(message.encode())
 
 def fetchIP(fileName, clientSocket):
