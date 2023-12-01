@@ -237,7 +237,7 @@ def clientListen(listenSocket):
 def clientProgram():
     global connectStatus
     host = socket.gethostname()
-    serverIP = "192.168.1.195"    # change IP when test
+    serverIP = "10.128.162.210"    # change IP when test
     port = 12000
     random.seed()
        
