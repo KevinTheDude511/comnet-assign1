@@ -47,7 +47,8 @@ def returnBroadcast(fileName, clientSocket):
         message += "empty"
     try:
         returnbroadSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        returnbroadSocket.connect((clientSocket.getpeername()[0],10000))
+        #returnbroadSocket.connect((clientSocket.getpeername()[0],10000))
+        returnbroadSocket.connect((serverIP, 10000))
         returnbroadSocket.send(message.encode())
     except ConnectionAbortedError:
         pass
@@ -60,9 +61,9 @@ def connectFetchClient(addr):
     address = addr[inp].split(":")
     
     fetchsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    fetchsocket.connect((address[0], int(address[1])))
+    #fetchsocket.connect((address[0], int(address[1])))
+    fetchsocket.connect((address[0], 7500))
     fetchsocket.send(("requestFile " + filename).encode())
-    print(filename)
     newfile = open(sourcePath + clientName + "LocalRepo/" + filename, "wb")
     try:
         print("Receiving file, please wait")
@@ -76,7 +77,7 @@ def connectFetchClient(addr):
         return True
     except ConnectionAbortedError:
         print("Fail to receive file due to abrupt disconnection from other client.")
-        #os.remove(sourcePath + clientName + "LocalRepo/" + filename)
+        os.remove(sourcePath + clientName + "LocalRepo/" + filename)
         fetchsocket.close()
         return False
     
@@ -228,7 +229,6 @@ def clientSend(clientSocket):
 
 def clientListen(listenSocket):
     while connectStatus:
-        listenSocket.listen(5)
         reqclient, reqclient_addr = listenSocket.accept()
         if (not(connectStatus)):
             break
@@ -236,14 +236,15 @@ def clientListen(listenSocket):
         returnthread.start()
         
 def clientProgram():
-    global connectStatus
+    global connectStatus, serverIP
     host = socket.gethostname()
-    serverIP = "10.128.162.210"    # change IP when test
+    serverIP = "192.168.56.1"    # change IP when test
     port = 12000
     random.seed()
-       
+
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientSocket.connect((serverIP, port))
+    clientAddress = clientSocket.getsockname()[0] + ":" + str(clientSocket.getsockname()[1])
     connectStatus = True
 
     threadSend = threading.Thread(target=clientSend, args=(clientSocket,))
@@ -253,7 +254,9 @@ def clientProgram():
     threadReceive.start()
     
     listenSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    listenSocket.bind(clientSocket.getsockname())
+   # listenSocket.bind((host, clientSocket.getsockname()[1]))
+    listenSocket.bind((host, 7500))
+    listenSocket.listen(5)
     threadListen = threading.Thread(target = clientListen, args=(listenSocket,))
     threadListen.start()
 

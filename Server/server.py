@@ -18,13 +18,13 @@ def serverSend():
                 if message[0] == "ping":
                     if message[1] != ip:
                         print(f"{message[1]} is down!")
-                        continue
+                        return
                     else:
                         message = "requestPing"
                 elif message[0] == "discover":
                     if message[1] != ip:
-                        print("Error!")
-                        continue
+                        print(f"{message[1]} is down!")
+                        return
                     else:
                         message = "requestDiscover"
                 connectSocket.send(message.encode())
@@ -44,14 +44,26 @@ def fetchBroadcast(message, conClients):
         broadcast_message = f"requestBroadcast {filename}"
 
         # Send the request to all connected clients
-        for connectSocket in connectingClients:
-            if (connectSocket != conClients ):
-                connectSocket.send(broadcast_message.encode())
+        # broadcastSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # broadcastSocket.bind((socket.gethostname(), 10000))
+        # broadcastSocket.listen(len(connectingClients))
+        # for connectSocket in connectingClients:
+        #     if (connectSocket != conClients ):
+        #         connectSocket.send(broadcast_message.encode())
+        # for i in range(len(connectingClients)):
+        #     if (connectingClients[i] != conClients ):
+        #         broadcastPeer, peerAddr = broadcastSocket.accept()
+        #         response = broadcastPeer.recv(1024).decode()
+        #         command = response.split(" ")
+        #         if (command[0] == "respondBroadcast" and command[1] != "empty"):
+        #             matching_clients.append(command[1])
+        # broadcastSocket.close()
         broadcastSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         broadcastSocket.bind((socket.gethostname(), 10000))
-        broadcastSocket.listen(len(connectingClients) - 1)
+        broadcastSocket.listen(len(connectingClients))
         for i in range(len(connectingClients)):
             if (connectingClients[i] != conClients ):
+                connectingClients[i].send(broadcast_message.encode())
                 broadcastPeer, peerAddr = broadcastSocket.accept()
                 response = broadcastPeer.recv(1024).decode()
                 command = response.split(" ")
@@ -111,7 +123,8 @@ def serverConnect(serverSocket):
         threadSend.start()
 
 def serverProgram():
-    host = socket.gethostname()
+    #host = socket.gethostname()
+    host = '192.168.56.1'
     port = 12000
 
     serverSocket = socket.socket()
